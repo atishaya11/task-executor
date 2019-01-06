@@ -1,0 +1,16 @@
+lang:
+  map:
+    java8:
+      source_file:  Main.java
+      cpu_share:  1.2
+      mem_limit:  500m
+
+    cpp:
+      source_file:  source.cpp
+      cpu_share:  0.8
+      mem_limit:  200m
+
+    c:
+      source_file:  source.c
+      cpu_share:  0.5
+      mem_limit:  100m
