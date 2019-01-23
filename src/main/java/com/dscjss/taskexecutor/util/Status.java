@@ -8,7 +8,7 @@ public enum Status {
     EXECUTED(4);
     private final int code;
 
-    Status(int code){
+    Status(int code) {
         this.code = code;
     }
 

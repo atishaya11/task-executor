@@ -30,7 +30,7 @@ public class RabbitMqConfig {
     }
 
     @Bean
-    public DefaultClassMapper classMapper(){
+    public DefaultClassMapper classMapper() {
         DefaultClassMapper classMapper = new DefaultClassMapper();
         classMapper.setDefaultType(Task.class);
         return classMapper;

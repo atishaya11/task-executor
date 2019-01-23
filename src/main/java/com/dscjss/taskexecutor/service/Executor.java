@@ -45,19 +45,19 @@ public class Executor {
         sender.send(result);
     }
 
-    public Result execute(Task task){
+    public Result execute(Task task) {
         Result result = new Result(task.getId());
 
         File taskExecutionDir = new File(EXECUTION_BOX_DIR, String.valueOf(task.getId()));
 
-        if(taskExecutionDir.exists()){
+        if (taskExecutionDir.exists()) {
             delete(taskExecutionDir);
         }
         final boolean directoryCreated = taskExecutionDir.mkdir();
 
-        if(directoryCreated){
+        if (directoryCreated) {
             logger.info("Task execution directory {} created successfully", taskExecutionDir.getAbsolutePath());
-        }else{
+        } else {
             logger.error("Unable to create task execution directory.");
             result.setStatus(Status.INTERNAL_ERROR);
             return result;
@@ -91,7 +91,7 @@ public class Executor {
          */
         try {
             Shell.exec(FILE_PATH_EXECUTION_SCRIPT, details.getCpuShare(), details.getMemLimit(), String.valueOf(task.getId()));
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             logger.error("Script did not run successfully.");
             result.setStatus(Status.INTERNAL_ERROR);
             e.printStackTrace();
@@ -99,16 +99,13 @@ public class Executor {
         }
 
         File compileErrorFile = new File(taskExecutionDir, FILE_NAME_COMPILE_ERROR);
-        if(compileErrorFile.setWritable(true)){
-            logger.info("File permissions changed.");
-        }
         File stdOutputFile = new File(taskExecutionDir, FILE_NAME_OUTPUT);
         File stdErrFile = new File(taskExecutionDir, FILE_NAME_ERROR);
         File executionTimeFile = new File(taskExecutionDir, FILE_NAME_EXECUTION_TIME);
 
         try {
             String compileError = getFileContents(compileErrorFile);
-            if(compileError.length() > 0){
+            if (compileError.length() > 0) {
                 result.setStatus(Status.COMPILATION_ERROR);
                 result.setCompileErr(compileError);
                 return result;
@@ -120,14 +117,15 @@ public class Executor {
 
         try {
             String output = getFileContents(stdOutputFile);
-            int time = Integer.parseInt(getFileContents(executionTimeFile));
+            String timeString = getFileContents(executionTimeFile);
+            int time = Integer.parseInt(timeString.trim());
             String error = getFileContents(stdErrFile);
-            if(time > task.getTimeLimit()){
+            if (time > task.getTimeLimit()) {
                 result.setStatus(Status.TIME_LIMIT_EXCEEDED);
-            }else{
-                if(error.length() > 0){
+            } else {
+                if (error.length() > 0) {
                     result.setStatus(Status.RUNTIME_ERROR);
-                }else{
+                } else {
                     result.setStatus(Status.EXECUTED);
                 }
             }
@@ -138,7 +136,8 @@ public class Executor {
             result.setStatus(Status.INTERNAL_ERROR);
             logger.error("Cannot parse run files.");
             e.printStackTrace();
-        } catch (NumberFormatException e){
+        } catch (NumberFormatException e) {
+            e.printStackTrace();
             result.setStatus(Status.INTERNAL_ERROR);
             logger.error("Cannot parse execution time.");
         }
@@ -148,26 +147,26 @@ public class Executor {
     }
 
     private void delete(File dir) {
-        File[] files =  dir.listFiles();
-        if(files == null){
+        File[] files = dir.listFiles();
+        if (files == null) {
             boolean deleted = dir.delete();
-            if(deleted){
+            if (deleted) {
                 logger.info("Directory {} empty. Deleted.", dir.getAbsolutePath());
             }
-        }else{
+        } else {
             logger.info("Directory {} non-empty, deleting files.", dir.getAbsolutePath());
-            for(File file : files){
-                if(file.isDirectory()){
+            for (File file : files) {
+                if (file.isDirectory()) {
                     delete(file);
-                }else{
+                } else {
                     boolean delete = file.delete();
-                    if(delete){
+                    if (delete) {
                         logger.info("File {} deleted..", file.getAbsolutePath());
                     }
                 }
             }
             boolean deleted = dir.delete();
-            if(deleted){
+            if (deleted) {
                 logger.info("Directory {} empty. Deleted.", dir.getAbsolutePath());
             }
         }
@@ -175,12 +174,13 @@ public class Executor {
     }
 
 
-    private String getFileContents(File file) throws IOException{
+    private String getFileContents(File file) throws IOException {
         BufferedReader bufferedReader = new BufferedReader(new FileReader(file));
         StringBuilder stringBuilder = new StringBuilder();
         String line;
-        while((line = bufferedReader.readLine()) != null){
+        while ((line = bufferedReader.readLine()) != null) {
             stringBuilder.append(line);
+            stringBuilder.append("\n");
         }
         return stringBuilder.toString();
     }

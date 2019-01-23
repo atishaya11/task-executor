@@ -17,10 +17,10 @@ public class Sender {
     private final Logger logger = LoggerFactory.getLogger(Sender.class);
 
     @Value("${rabbitmq.exchange}")
-    private static String EXCHANGE;
+    private String EXCHANGE;
 
     @Value("${rabbitmq.routing-key}")
-    private static String ROUTING_KEY;
+    private String ROUTING_KEY;
 
 
     @Autowired
@@ -29,8 +29,8 @@ public class Sender {
     }
 
 
-    public void send(Result result){
-        rabbitTemplate.convertAndSend(EXCHANGE, ROUTING_KEY, result,  m -> {
+    public void send(Result result) {
+        rabbitTemplate.convertAndSend(EXCHANGE, ROUTING_KEY, result, m -> {
             m.getMessageProperties().getHeaders().remove("__TypeId__");
             return m;
         });

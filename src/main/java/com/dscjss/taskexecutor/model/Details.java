@@ -1,7 +1,7 @@
 package com.dscjss.taskexecutor.model;
 
 
-public class Details{
+public class Details {
     private String sourceFile;
     private String cpuShare;
     private String memLimit;
