@@ -16,6 +16,8 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Service
 public class Executor {
@@ -28,8 +30,11 @@ public class Executor {
     private final String FILE_NAME_ERROR = "run.stderr";
     private final String FILE_NAME_COMPILE_ERROR = "compile.stderr";
     private final String FILE_NAME_EXECUTION_TIME = "run.time";
+    private final String FILE_NAME_TIMEOUT_SIGNAL = "run.timeout_signal";
     private final String FILE_PATH_EXECUTION_SCRIPT = "/home/atishaya/IntellijProjects/coding-platform-apps/task-executor/src/main/resources/script.sh";
 
+
+    private final int SIGNAL_TIME_LIMIT_EXCEEDED = 124;
     private Sender sender;
 
     private LangConfigProperties langConfigProperties;
@@ -64,9 +69,19 @@ public class Executor {
         }
 
         Details details = langConfigProperties.getMap().get(task.getLang());
+        String sourceFileName = details.getSourceFile();
+        if(task.getLang().equals("java8")){
+            Pattern pattern = Pattern.compile("public\\s*class\\s([^\\n\\s]*)\\{");
+            Matcher matcher = pattern.matcher(task.getSource());
+            if(matcher.find()){
+                String className = matcher.group(1);
+                sourceFileName = className + ".java";
+                logger.info("Changing java file name to : " + sourceFileName);
+            }
+        }
 
         try {
-            File sourceFile = new File(taskExecutionDir.getAbsolutePath(), details.getSourceFile());
+            File sourceFile = new File(taskExecutionDir.getAbsolutePath(),sourceFileName);
             FileOutputStream fileOutputStream = new FileOutputStream(sourceFile);
             fileOutputStream.write(task.getSource().getBytes());
 
@@ -90,7 +105,7 @@ public class Executor {
         Running script to execute the code with given input.
          */
         try {
-            Shell.exec(FILE_PATH_EXECUTION_SCRIPT, details.getCpuShare(), details.getMemLimit(), String.valueOf(task.getId()));
+            Shell.exec(FILE_PATH_EXECUTION_SCRIPT, details.getCpuShare(), details.getMemLimit(), String.valueOf(task.getId()), task.getLang(), String.valueOf(task.getTimeLimit()/1000.0));
         } catch (IOException | InterruptedException e) {
             logger.error("Script did not run successfully.");
             result.setStatus(Status.INTERNAL_ERROR);
@@ -102,6 +117,7 @@ public class Executor {
         File stdOutputFile = new File(taskExecutionDir, FILE_NAME_OUTPUT);
         File stdErrFile = new File(taskExecutionDir, FILE_NAME_ERROR);
         File executionTimeFile = new File(taskExecutionDir, FILE_NAME_EXECUTION_TIME);
+        File timeoutSignalFile = new File(taskExecutionDir, FILE_NAME_TIMEOUT_SIGNAL);
 
         try {
             String compileError = getFileContents(compileErrorFile);
@@ -120,7 +136,8 @@ public class Executor {
             String timeString = getFileContents(executionTimeFile);
             int time = Integer.parseInt(timeString.trim());
             String error = getFileContents(stdErrFile);
-            if (time > task.getTimeLimit()) {
+            int timeOutSignal = Integer.parseInt(getFileContents(timeoutSignalFile).trim());
+            if (timeOutSignal == SIGNAL_TIME_LIMIT_EXCEEDED) {
                 result.setStatus(Status.TIME_LIMIT_EXCEEDED);
             } else {
                 if (error.length() > 0) {

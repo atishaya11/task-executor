@@ -39,7 +39,7 @@ public class ExecutorJava8Tests {
         task.setLang("java8");
         task.setInput("Hello World");
         task.setSource("import java.util.*;\n" +
-                "public class Main{\n" +
+                "public class Agfg{\n" +
                 "\n" +
                 "    public static void main(String[] args) {\n" +
                 "        Scanner in = new Scanner(System.in);\n" +
@@ -56,7 +56,7 @@ public class ExecutorJava8Tests {
     public void testExecute() {
         Task task = createTask();
         Result result = executor.execute(task);
-        assertEquals("Hello World", result.getStdOut());
+        assertEquals("Hello World\n", result.getStdOut());
     }
 
 }
