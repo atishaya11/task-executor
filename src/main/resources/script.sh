@@ -7,3 +7,4 @@ docker run  --cpus=${1} --memory=${2} \
 -v /usr/execute/box/${3}:/usr/src/runbox   \
 -w /usr/src/runbox atishaya/judge-worker-${4}  \
 bash -c "/bin/compile.sh && /bin/run.sh ${5}"
+

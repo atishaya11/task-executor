@@ -1,0 +1,18 @@
+{
+  "properties": [
+    {
+      "name": "lang.map.java8.source_file",
+      "type": "java.lang.String",
+      "description": "Description for lang.map.java8.source_file."
+    },
+    {
+      "name": "lang.map.java8.cpu_share",
+      "type": "java.lang.String",
+      "description": "Description for lang.map.java8.cpu_share."
+    },
+    {
+      "name": "lang.map.java8.mem_limit",
+      "type": "java.lang.String",
+      "description": "Description for lang.map.java8.mem_limit."
+    }
+  ] }

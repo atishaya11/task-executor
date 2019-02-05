@@ -31,7 +31,7 @@ public class Executor {
     private final String FILE_NAME_COMPILE_ERROR = "compile.stderr";
     private final String FILE_NAME_EXECUTION_TIME = "run.time";
     private final String FILE_NAME_TIMEOUT_SIGNAL = "run.timeout_signal";
-    private final String FILE_PATH_EXECUTION_SCRIPT = "/home/atishaya/IntellijProjects/coding-platform-apps/task-executor/src/main/resources/script.sh";
+    private final String FILE_PATH_EXECUTION_SCRIPT = "/usr/script.sh";
 
 
     private final int SIGNAL_TIME_LIMIT_EXCEEDED = 124;
@@ -58,7 +58,7 @@ public class Executor {
         if (taskExecutionDir.exists()) {
             delete(taskExecutionDir);
         }
-        final boolean directoryCreated = taskExecutionDir.mkdir();
+        final boolean directoryCreated = taskExecutionDir.mkdirs();
 
         if (directoryCreated) {
             logger.info("Task execution directory {} created successfully", taskExecutionDir.getAbsolutePath());
@@ -187,7 +187,6 @@ public class Executor {
                 logger.info("Directory {} empty. Deleted.", dir.getAbsolutePath());
             }
         }
-
     }
 
 

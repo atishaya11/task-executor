@@ -1,0 +1,11 @@
+version: '3'
+services:
+  task-executor:
+    image: atishaya/task-executor
+    volumes:
+      - "/tmp/runbox:/tmp/runbox"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    env_file:
+      - .env
+    network_mode: "host"
+
