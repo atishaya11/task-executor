@@ -65,11 +65,17 @@ public class Executor {
         } else {
             logger.error("Unable to create task execution directory.");
             result.setStatus(Status.INTERNAL_ERROR);
+            delete(taskExecutionDir);
             return result;
         }
 
+        logger.info("Lang Config Properties: {}", langConfigProperties.toString());
+        logger.info("Lang Config Properties: {}", langConfigProperties.getMap().toString());
+        logger.info("Task Lang: {}", task.getLang());
+
         Details details = langConfigProperties.getMap().get(task.getLang());
         String sourceFileName = details.getSourceFile();
+        logger.info("Source file name: {}", sourceFileName);
         if(task.getLang().equals("java8")){
             Pattern pattern = Pattern.compile("public\\s*class\\s([^\\n\\s]*)\\{");
             Matcher matcher = pattern.matcher(task.getSource());
@@ -88,6 +94,7 @@ public class Executor {
         } catch (IOException e) {
             logger.error("Unable to create a source file for execution. Aborting execution.");
             e.printStackTrace();
+            delete(taskExecutionDir);
             return result;
         }
         try {
@@ -98,6 +105,7 @@ public class Executor {
         } catch (IOException e) {
             logger.error("Unable to create input file for execution. Aborting execution.");
             e.printStackTrace();
+            delete(taskExecutionDir);
             return result;
         }
 
@@ -110,6 +118,7 @@ public class Executor {
             logger.error("Script did not run successfully.");
             result.setStatus(Status.INTERNAL_ERROR);
             e.printStackTrace();
+            delete(taskExecutionDir);
             return result;
         }
 
@@ -124,6 +133,7 @@ public class Executor {
             if (compileError.length() > 0) {
                 result.setStatus(Status.COMPILATION_ERROR);
                 result.setCompileErr(compileError);
+                delete(taskExecutionDir);
                 return result;
             }
         } catch (IOException e) {

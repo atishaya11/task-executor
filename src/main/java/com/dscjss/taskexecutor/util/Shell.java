@@ -21,6 +21,5 @@ public class Shell {
         String result = builder.toString();
         System.out.println(result);
 
-
     }
 }
