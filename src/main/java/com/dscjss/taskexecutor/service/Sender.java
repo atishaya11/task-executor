@@ -2,6 +2,7 @@ package com.dscjss.taskexecutor.service;
 
 
 import com.dscjss.taskexecutor.model.Result;
+import com.dscjss.taskexecutor.util.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -30,10 +31,20 @@ public class Sender {
 
 
     public void send(Result result) {
-        rabbitTemplate.convertAndSend(EXCHANGE, ROUTING_KEY, result, m -> {
-            m.getMessageProperties().getHeaders().remove("__TypeId__");
-            return m;
-        });
+        try{
+            rabbitTemplate.convertAndSend(EXCHANGE, ROUTING_KEY, result, m -> {
+                m.getMessageProperties().getHeaders().remove("__TypeId__");
+                return m;
+            });
+        } catch (Exception e){
+            Result errResult = new Result(result.getId());
+            errResult.setStatus(Status.INTERNAL_ERROR);
+            errResult.setSignal(result.getSignal());
+            rabbitTemplate.convertAndSend(EXCHANGE, ROUTING_KEY, result, m -> {
+                m.getMessageProperties().getHeaders().remove("__TypeId__");
+                return m;
+            });
+        }
         logger.info("Task executed and result {} sent to the success queue", result);
     }
 }

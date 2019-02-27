@@ -14,3 +14,8 @@ lang:
       source_file:  source.c
       cpu_share:  0.5
       mem_limit:  100m
+
+    python3:
+      source_file:  script.py
+      cpu_share:  0.8
+      mem_limit:  200m

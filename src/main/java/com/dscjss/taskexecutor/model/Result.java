@@ -11,6 +11,7 @@ public class Result {
     private int time;
     private double memory;
     private Status status;
+    private int signal;
 
     public Result(int id) {
         this.id = id;
@@ -71,6 +72,14 @@ public class Result {
 
     public void setStatus(Status status) {
         this.status = status;
+    }
+
+    public int getSignal() {
+        return signal;
+    }
+
+    public void setSignal(int signal) {
+        this.signal = signal;
     }
 
     @Override

@@ -13,9 +13,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -30,8 +27,9 @@ public class Executor {
     private final String FILE_NAME_ERROR = "run.stderr";
     private final String FILE_NAME_COMPILE_ERROR = "compile.stderr";
     private final String FILE_NAME_EXECUTION_TIME = "run.time";
-    private final String FILE_NAME_TIMEOUT_SIGNAL = "run.timeout_signal";
+    private final String FILE_NAME_SIGNAL = "run.signal";
     private final String FILE_PATH_EXECUTION_SCRIPT = "/usr/script.sh";
+    private final int MAX_STREAM_LENGTH = 104857600; //100 MB
 
 
     private final int SIGNAL_TIME_LIMIT_EXCEEDED = 124;
@@ -69,15 +67,11 @@ public class Executor {
             return result;
         }
 
-        logger.info("Lang Config Properties: {}", langConfigProperties.toString());
-        logger.info("Lang Config Properties: {}", langConfigProperties.getMap().toString());
-        logger.info("Task Lang: {}", task.getLang());
-
         Details details = langConfigProperties.getMap().get(task.getLang());
         String sourceFileName = details.getSourceFile();
         logger.info("Source file name: {}", sourceFileName);
         if(task.getLang().equals("java8")){
-            Pattern pattern = Pattern.compile("public\\s*class\\s([^\\n\\s]*)\\{");
+            Pattern pattern = Pattern.compile("class\\s+([^\\n\\s*]+)(.*)\\{(.*)\\s*(.*)public\\s+static\\s+void\\s+main\\s*");
             Matcher matcher = pattern.matcher(task.getSource());
             if(matcher.find()){
                 String className = matcher.group(1);
@@ -126,11 +120,12 @@ public class Executor {
         File stdOutputFile = new File(taskExecutionDir, FILE_NAME_OUTPUT);
         File stdErrFile = new File(taskExecutionDir, FILE_NAME_ERROR);
         File executionTimeFile = new File(taskExecutionDir, FILE_NAME_EXECUTION_TIME);
-        File timeoutSignalFile = new File(taskExecutionDir, FILE_NAME_TIMEOUT_SIGNAL);
+        File signalFile = new File(taskExecutionDir, FILE_NAME_SIGNAL);
 
         try {
-            String compileError = getFileContents(compileErrorFile);
-            if (compileError.length() > 0) {
+            String content = getFileContents(compileErrorFile);
+            if (content.length() > 0) {
+                String compileError = content.substring(0, Math.min(content.length(), MAX_STREAM_LENGTH));
                 result.setStatus(Status.COMPILATION_ERROR);
                 result.setCompileErr(compileError);
                 delete(taskExecutionDir);
@@ -142,23 +137,34 @@ public class Executor {
         }
 
         try {
-            String output = getFileContents(stdOutputFile);
+            int signal = Integer.parseInt(getFileContents(signalFile).trim());
             String timeString = getFileContents(executionTimeFile);
             int time = Integer.parseInt(timeString.trim());
-            String error = getFileContents(stdErrFile);
-            int timeOutSignal = Integer.parseInt(getFileContents(timeoutSignalFile).trim());
-            if (timeOutSignal == SIGNAL_TIME_LIMIT_EXCEEDED) {
-                result.setStatus(Status.TIME_LIMIT_EXCEEDED);
+
+            if(stdOutputFile.length() > MAX_STREAM_LENGTH){
+                result.setStatus(Status.RUNTIME_ERROR);
             } else {
-                if (error.length() > 0) {
+                String output = getFileContents(stdOutputFile);
+                String error = getFileContents(stdErrFile);
+
+                if(signal == SIGNAL_TIME_LIMIT_EXCEEDED) {
+                    result.setStatus(Status.TIME_LIMIT_EXCEEDED);
+                } else if(signal != 0){
+                    String stdErr = error.substring(0, Math.min(error.length(), MAX_STREAM_LENGTH));
+                    result.setStdErr(stdErr);
                     result.setStatus(Status.RUNTIME_ERROR);
                 } else {
                     result.setStatus(Status.EXECUTED);
                 }
+                if(output.length() > MAX_STREAM_LENGTH){
+                    result.setStatus(Status.RUNTIME_ERROR);
+                    result.setStdOut(output.substring(0, MAX_STREAM_LENGTH));
+                }else {
+                    result.setStdOut(output);
+                }
             }
+            result.setSignal(signal);
             result.setTime(time);
-            result.setStdOut(output);
-            result.setStdErr(error);
         } catch (IOException e) {
             result.setStatus(Status.INTERNAL_ERROR);
             logger.error("Cannot parse run files.");
@@ -166,7 +172,7 @@ public class Executor {
         } catch (NumberFormatException e) {
             e.printStackTrace();
             result.setStatus(Status.INTERNAL_ERROR);
-            logger.error("Cannot parse execution time.");
+            logger.error("Cannot parse execution time or signal file.");
         }
 
         delete(taskExecutionDir);
@@ -201,6 +207,7 @@ public class Executor {
 
 
     private String getFileContents(File file) throws IOException {
+
         BufferedReader bufferedReader = new BufferedReader(new FileReader(file));
         StringBuilder stringBuilder = new StringBuilder();
         String line;
